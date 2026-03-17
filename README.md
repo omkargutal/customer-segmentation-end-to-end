@@ -8,17 +8,17 @@ A complete end-to-end machine learning project that segments customers into dist
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Problem Statement](#problem-statement)
-- [Dataset](#dataset)
-- [Methodology](#methodology)
-- [Customer Segments](#customer-segments)
-- [Project Structure](#project-structure)
-- [Tech Stack](#tech-stack)
-- [Setup & Installation](#setup--installation)
-- [Running the App](#running-the-app)
-- [Results & Insights](#results--insights)
-- [Contributors](#contributors)
+- [Overview](#-overview)
+- [Problem Defination](#-problem-defination)
+- [Dataset](#-dataset)
+- [Methodology](#-methodology)
+- [Customer Segments](#-customer-segments)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#️-tech-stack)
+- [Setup & Installation](#️-setup--installation)
+- [Running the App](#-running-the-app)
+- [Results & Insights](#-results--insights)
+- [Contributors](#-contributors)
 
 ---
 
@@ -30,7 +30,7 @@ The findings are deployed as an interactive **Streamlit web application** that a
 
 ---
 
-## ❓ Problem Statement
+##  Problem Defination
 
 Modern businesses struggle to deliver personalized experiences at scale. A one-size-fits-all marketing approach leads to wasted budget and poor customer engagement. The goal of this project is to:
 
@@ -141,22 +141,6 @@ customer-segmentation/
 
 This project uses a `.env` file to store sensitive credentials. A `.env` file is already provided in the project directory.
 
-### NGROK Auth Token *(required for public URL sharing)*
-
-> NGROK is used to expose your local Streamlit app to the internet with a public link — useful for demos and sharing with others.
-
-1. Sign up or log in at [https://dashboard.ngrok.com](https://dashboard.ngrok.com)
-2. Navigate to **"Your Authtoken"** in the left sidebar
-3. Copy your token and open the `.env` file
-4. Replace the placeholder value:
-
-```env
-NGROK_AUTH_TOKEN=your_ngrok_auth_token_here
-```
-
-> ⚠️ **Never share your `.env` file or commit it to GitHub.** Add `.env` to your `.gitignore`.
-
----
 
 ## ⚙️ Setup & Installation
 
@@ -168,7 +152,7 @@ NGROK_AUTH_TOKEN=your_ngrok_auth_token_here
 
 1. **Clone or download the project**
    ```bash
-   git clone <your-repo-url>
+   git clone `https://github.com/omkargutal/customer-segmentation-end-to-end.git`
    cd customer-segmentation
    ```
 
@@ -223,11 +207,9 @@ The app will open in your browser at `http://localhost:8501`.
 
 ## 👥 Contributors
 
-| Name |
-|---|
-| **Omkar Gutal** |
-| **Moin Mohammed** |
-| **Khushi Choudhari** |
+- **Omkar Gutal** 
+- **Moin Mohammed** 
+- **Khushi Choudhari** 
 
 ---
 
