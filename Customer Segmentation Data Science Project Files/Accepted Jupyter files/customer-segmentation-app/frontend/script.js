@@ -17,21 +17,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Re-render charts when Overview tab is active to prevent canvas sizing bugs
             if (target === "overview") {
-                renderCharts();
+                updateOverviewKPIs();
             }
             if (target === "data") {
-                loadData();
+                if (!customersData || customersData.length === 0) loadData(); else renderTable();
             }
         });
     });
 
     const API_BASE_URL = "http://127.0.0.1:8000";
 
+    let customersData = null;
+    let pendingPrediction = null;
+
     // Charts Logic
     let pieChartInstance = null;
     let barChartInstance = null;
 
-    function renderCharts() {
+    function renderCharts(stats) {
+        if (!stats) return;
+
         if (pieChartInstance) pieChartInstance.destroy();
         if (barChartInstance) barChartInstance.destroy();
 
@@ -44,7 +49,12 @@ document.addEventListener("DOMContentLoaded", () => {
             data: {
                 labels: ['Budget-Conscious', 'Premium Loyal', 'Deal-Seeking Parents', 'High-Value'],
                 datasets: [{
-                    data: [44, 10, 18, 28], // Percentages from the Reference PDF
+                    data: [
+                        stats['Budget-Conscious'].count,
+                        stats['Premium Loyal'].count,
+                        stats['Deal-Seeking Parents'].count,
+                        stats['High-Value'].count
+                    ],
                     backgroundColor: ['#EF4444', '#8B5CF6', '#F59E0B', '#3B82F6'],
                     borderWidth: 0
                 }]
@@ -69,13 +79,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 datasets: [
                     {
                         label: 'Avg Income ($)',
-                        data: [77237, 34054, 70207, 52515],
+                        data: [
+                            stats['Premium Loyal'].avgIncome,
+                            stats['Budget-Conscious'].avgIncome,
+                            stats['High-Value'].avgIncome,
+                            stats['Deal-Seeking Parents'].avgIncome
+                        ],
                         backgroundColor: '#3B82F6',
                         barPercentage: 0.6
                     },
                     {
                         label: 'Avg Spend ($)',
-                        data: [1517, 97, 1066, 605],
+                        data: [
+                            stats['Premium Loyal'].avgSpend,
+                            stats['Budget-Conscious'].avgSpend,
+                            stats['High-Value'].avgSpend,
+                            stats['Deal-Seeking Parents'].avgSpend
+                        ],
                         backgroundColor: '#10B981',
                         barPercentage: 0.6
                     }
@@ -88,8 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     x: { ticks: { font: { family: 'Inter' } } },
                     y: {
                         beginAtZero: true,
-                        max: 80000,
-                        ticks: { stepSize: 20000, font: { family: 'Inter' } }
+                        ticks: { font: { family: 'Inter' } }
                     }
                 },
                 plugins: {
@@ -102,8 +121,79 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Initial Render
-    renderCharts();
+    function updateOverviewKPIs() {
+        if (!customersData || customersData.length === 0) return;
+
+        let totalIncome = 0;
+        let totalSpend = 0;
+        
+        let stats = {
+            "Premium Loyal": { count: 0, income: 0, spend: 0, age: 0 },
+            "Budget-Conscious": { count: 0, income: 0, spend: 0, age: 0 },
+            "High-Value": { count: 0, income: 0, spend: 0, age: 0 },
+            "Deal-Seeking Parents": { count: 0, income: 0, spend: 0, age: 0 }
+        };
+
+        customersData.forEach(row => {
+            const inc = Number(row.Income) || 0;
+            const spend = Number(row.Total_Spend) || 0;
+            const age = Number(row.Age) || 0;
+            const seg = row.Cluster_Label;
+
+            totalIncome += inc;
+            totalSpend += spend;
+
+            if (stats[seg]) {
+                stats[seg].count += 1;
+                stats[seg].income += inc;
+                stats[seg].spend += spend;
+                stats[seg].age += age;
+            }
+        });
+
+        const totalCustomers = customersData.length;
+        const avgIncome = Math.round(totalIncome / totalCustomers) || 0;
+        const avgSpend = Math.round(totalSpend / totalCustomers) || 0;
+
+        document.getElementById("kpiTotalCustomers").innerText = totalCustomers.toLocaleString();
+        document.getElementById("kpiAvgIncome").innerText = "$" + avgIncome.toLocaleString();
+        document.getElementById("kpiAvgSpend").innerText = "$" + avgSpend.toLocaleString();
+        
+        // Segments Averages
+        for (const seg in stats) {
+            const count = stats[seg].count;
+            stats[seg].avgIncome = count > 0 ? Math.round(stats[seg].income / count) : 0;
+            stats[seg].avgSpend = count > 0 ? Math.round(stats[seg].spend / count) : 0;
+            stats[seg].avgAge = count > 0 ? Math.round(stats[seg].age / count) : 0;
+        }
+
+        // Update Premium Loyal
+        document.getElementById("segPremiumCount").innerText = stats["Premium Loyal"].count.toLocaleString();
+        document.getElementById("segPremiumIncome").innerText = "$" + stats["Premium Loyal"].avgIncome.toLocaleString();
+        document.getElementById("segPremiumSpend").innerText = "$" + stats["Premium Loyal"].avgSpend.toLocaleString();
+        document.getElementById("segPremiumAge").innerText = stats["Premium Loyal"].avgAge + " yrs";
+
+        // Update Budget-Conscious
+        document.getElementById("segBudgetCount").innerText = stats["Budget-Conscious"].count.toLocaleString();
+        document.getElementById("segBudgetIncome").innerText = "$" + stats["Budget-Conscious"].avgIncome.toLocaleString();
+        document.getElementById("segBudgetSpend").innerText = "$" + stats["Budget-Conscious"].avgSpend.toLocaleString();
+        document.getElementById("segBudgetAge").innerText = stats["Budget-Conscious"].avgAge + " yrs";
+
+        // Update High-Value
+        document.getElementById("segHighCount").innerText = stats["High-Value"].count.toLocaleString();
+        document.getElementById("segHighIncome").innerText = "$" + stats["High-Value"].avgIncome.toLocaleString();
+        document.getElementById("segHighSpend").innerText = "$" + stats["High-Value"].avgSpend.toLocaleString();
+        document.getElementById("segHighAge").innerText = stats["High-Value"].avgAge + " yrs";
+
+        // Update Deal-Seeking Parents
+        document.getElementById("segDealCount").innerText = stats["Deal-Seeking Parents"].count.toLocaleString();
+        document.getElementById("segDealIncome").innerText = "$" + stats["Deal-Seeking Parents"].avgIncome.toLocaleString();
+        document.getElementById("segDealSpend").innerText = "$" + stats["Deal-Seeking Parents"].avgSpend.toLocaleString();
+        document.getElementById("segDealAge").innerText = stats["Deal-Seeking Parents"].avgAge + " yrs";
+
+        // Re-render charts with dynamic stats array
+        renderCharts(stats);
+    }
 
     // -----------------------------------------------------
     // API Call - Predict
@@ -225,6 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
                 if (customersData) {
                     customersData.unshift(newRecord);
+                    updateOverviewKPIs();
                 } else {
                     // Will be prepended when data loads next time via the flag
                     pendingPrediction = newRecord;
@@ -254,8 +345,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const pageNumbersContainer = document.getElementById("pageNumbersContainer");
     const showingLabel = document.getElementById("showingLabel");
 
-    let customersData = null;
-    let pendingPrediction = null;
     let currentPage = 1;
     const ROWS_PER_PAGE = 20;
 
@@ -280,8 +369,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (headerCount && customersData) {
             headerCount.innerText = customersData.length.toLocaleString();
         }
+        updateOverviewKPIs();
         renderTable();
     }
+
+    // Eagerly load data when the page starts
+    loadData();
 
     function getFilteredRows() {
         if (!customersData) return [];
