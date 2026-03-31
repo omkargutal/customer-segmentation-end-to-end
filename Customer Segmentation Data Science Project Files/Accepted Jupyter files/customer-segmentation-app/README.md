@@ -52,8 +52,30 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### 2. Frontend Setup
 
-The frontend uses standard HTML/CSS/JS with zero build steps needed.
-Simply open `frontend/index.html` in any modern web browser or use a live server extension (like VSCode Live Server).
+The frontend uses standard HTML/CSS/JS with no build step.
+
+Options:
+
+1. Open directly:
+
+```bash
+open frontend/index.html
+```
+
+2. Run a local static server (recommended):
+
+```bash
+cd frontend
+python3 -m http.server 5500
+```
+
+Then open:
+
+- `http://localhost:5500` in your browser
+
+3. If using VS Code Live Server, open `frontend/index.html` and click "Go Live".
+
+The app will call the backend API at `http://127.0.0.1:8000`.
 
 ## 📄 API Endpoints
 
