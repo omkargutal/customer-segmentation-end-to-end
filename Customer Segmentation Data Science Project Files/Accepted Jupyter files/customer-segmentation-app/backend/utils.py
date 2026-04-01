@@ -2,6 +2,8 @@ import pandas as pd
 import joblib
 import pickle
 import os
+from pymongo import MongoClient
+from bson import ObjectId
 
 # Define Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,8 +12,29 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 SCALER_PATH = os.path.join(MODEL_DIR, 'scaler.pkl')
 MODEL_PATH = os.path.join(MODEL_DIR, 'kmeans_model.pkl')
-PREDICTIONS_FILE = os.path.join(DATA_DIR, 'predictions.csv')
-CUSTOMERS_FILE = os.path.join(DATA_DIR, 'customers.csv')
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# MongoDB Configuration
+MONGODB_URI = os.getenv("MONGODB_URI")
+DB_NAME = os.getenv("DB_NAME", "customer_segmentation")
+
+if not MONGODB_URI:
+    print("Warning: MONGODB_URI NOT found in environment! Running in MOCK mode with mongomock.")
+    import mongomock
+    client = mongomock.MongoClient()
+else:
+    print(f"Connecting to MongoDB Atlas: {MONGODB_URI.split('@')[-1]}")
+    client = MongoClient(MONGODB_URI)
+
+db = client[DB_NAME]
+print(f"Using database: {DB_NAME}")
+customers_col = db["customers"]
+predictions_col = db["predictions"]
+deleted_col = db["deleted"]
 
 # Cluster Mapping
 CLUSTER_LABELS = {
@@ -36,12 +59,7 @@ def get_cluster_label(cluster_id):
     return CLUSTER_LABELS.get(cluster_id, "Unknown Segment")
 
 def preprocess_and_predict(input_data: dict) -> tuple:
-    # Feature columns expected by scaler in exact order:
-    # ['Education', 'Marital_Status', 'Income', 'Recency', 'NumDealsPurchases', 
-    #  'NumWebVisitsMonth', 'Response', 'Age', 'Total_Spend', 'Total_Purchases', 
-    #  'Total_Dependents', 'Total_Campaigns_Accepted']
-    
-    # We provide default values for fields not consistently shown in UI
+    # Feature columns expected by scaler
     df = pd.DataFrame([{
         'Education': getattr(input_data, 'Education', 0),
         'Marital_Status': getattr(input_data, 'Marital_Status', 0),
@@ -82,46 +100,50 @@ def save_prediction(input_data: dict, cluster: int, label: str):
         'Cluster_Label': label
     }
     
-    df = pd.DataFrame([row])
-    
-    # Check if predictions.csv exists
-    if not os.path.isfile(PREDICTIONS_FILE):
-        df.to_csv(PREDICTIONS_FILE, index=False)
-    else:
-        df.to_csv(PREDICTIONS_FILE, mode='a', header=False, index=False)
-        
-    # Also append to customers.csv so it reflects immediately in Dashboard and Explorer
-    if not os.path.isfile(CUSTOMERS_FILE):
-        df.to_csv(CUSTOMERS_FILE, index=False)
-    else:
-        df.to_csv(CUSTOMERS_FILE, mode='a', header=False, index=False)
+    # Store in predictions collection
+    predictions_col.insert_one(row.copy())
+    # Store in customers collection (if you want to track them separately)
+    customers_col.insert_one(row)
         
 def get_dashboard_stats():
-    # Provide stats for the UI from customers.csv
     try:
-        df = pd.read_csv(CUSTOMERS_FILE)
-        total_customers = len(df)
-        avg_income = int(df['Income'].mean())
-        avg_spend = int(df['Total_Spend'].mean())
+        total_customers = customers_col.count_documents({})
+        if total_customers == 0:
+            return {}
+
+        pipeline = [
+            {
+                "$group": {
+                    "_id": "$Cluster_Label",
+                    "count": {"$sum": 1},
+                    "avgIncome": {"$avg": "$Income"},
+                    "avgSpend": {"$avg": "$Total_Spend"}
+                }
+            }
+        ]
         
-        # Segment counts
-        segment_counts = df['Cluster_Label'].value_counts().to_dict()
+        results = list(customers_col.aggregate(pipeline))
         
-        # Averages per segment
-        avg_income_seg = {}
-        avg_spend_seg = {}
-        if not df.empty and 'Cluster_Label' in df.columns:
-            avg_income_seg = df.groupby('Cluster_Label')['Income'].mean().fillna(0).round(0).to_dict()
-            avg_spend_seg = df.groupby('Cluster_Label')['Total_Spend'].mean().fillna(0).round(0).to_dict()
+        segment_distribution = {res["_id"]: res["count"] for res in results}
+        avg_income_per_segment = {res["_id"]: round(res.get("avgIncome", 0), 0) for res in results}
+        avg_spend_per_segment = {res["_id"]: round(res.get("avgSpend", 0), 0) for res in results}
+        
+        # Global Averages
+        avg_global = list(customers_col.aggregate([
+            {"$group": {"_id": None, "avgIncome": {"$avg": "$Income"}, "avgSpend": {"$avg": "$Total_Spend"}}}
+        ]))
+        
+        avg_income = round(avg_global[0]["avgIncome"], 0) if avg_global else 0
+        avg_spend = round(avg_global[0]["avgSpend"], 0) if avg_global else 0
         
         return {
             "total_customers": total_customers,
-            "segments": len(segment_counts) if len(segment_counts) > 0 else 4,
+            "segments": len(segment_distribution),
             "avg_income": avg_income,
             "avg_spend": avg_spend,
-            "segment_distribution": segment_counts,
-            "avg_income_per_segment": avg_income_seg,
-            "avg_spend_per_segment": avg_spend_seg
+            "segment_distribution": segment_distribution,
+            "avg_income_per_segment": avg_income_per_segment,
+            "avg_spend_per_segment": avg_spend_per_segment
         }
     except Exception as e:
         print("Error in stats:", e)
@@ -129,41 +151,36 @@ def get_dashboard_stats():
 
 def get_customers_data():
     try:
-        df = pd.read_csv(CUSTOMERS_FILE)
-        return df.to_dict(orient="records")
+        docs = list(customers_col.find().sort("_id", -1))
+        for doc in docs:
+            doc["id"] = str(doc["_id"])
+            del doc["_id"]
+        return docs
     except Exception:
         return []
 
 def get_predictions_data():
-    if os.path.isfile(PREDICTIONS_FILE):
-        try:
-            df = pd.read_csv(PREDICTIONS_FILE)
-            return df.to_dict(orient="records")
-        except Exception:
-            return []
-    return []
-
-def delete_customer(index: int):
     try:
-        if not os.path.isfile(CUSTOMERS_FILE):
-            return False, "Data file not found"
-        df = pd.read_csv(CUSTOMERS_FILE)
-        if index < 0 or index >= len(df):
-            return False, "Invalid index"
+        docs = list(predictions_col.find().sort("_id", -1))
+        for doc in docs:
+            doc["id"] = str(doc["_id"])
+            del doc["_id"]
+        return docs
+    except Exception:
+        return []
+
+def delete_customer(customer_id: str):
+    try:
+        obj_id = ObjectId(customer_id)
+        # Find customer
+        customer = customers_col.find_one({"_id": obj_id})
+        if not customer:
+            return False, "Customer not found"
         
-        # Extract row
-        deleted_row = df.iloc[[index]]
-        # Remove row
-        df.drop(index, inplace=True)
-        # Save back
-        df.to_csv(CUSTOMERS_FILE, index=False)
-        
-        # Save to deleted.csv
-        deleted_file = os.path.join(DATA_DIR, 'deleted.csv')
-        if not os.path.isfile(deleted_file):
-            deleted_row.to_csv(deleted_file, index=False)
-        else:
-            deleted_row.to_csv(deleted_file, mode='a', header=False, index=False)
+        # Move to deleted collection
+        deleted_col.insert_one(customer)
+        # Remove from main collection
+        customers_col.delete_one({"_id": obj_id})
             
         return True, "Customer deleted successfully"
     except Exception as e:
