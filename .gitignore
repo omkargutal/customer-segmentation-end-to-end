@@ -1,5 +1,11 @@
 # macOS
 .DS_Store
-venv
-__pycache__ 
-.env     # Hide Environment Variables with hidden api keys for live data base
+**/.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Env
+venv/
+.env
