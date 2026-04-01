@@ -71,9 +71,9 @@ def get_dashboard_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/delete/{index}")
-def delete_customer_endpoint(index: int):
-    success, message = utils.delete_customer(index)
+@app.delete("/delete/{customer_id}")
+def delete_customer_endpoint(customer_id: str):
+    success, message = utils.delete_customer(customer_id)
     if not success:
         raise HTTPException(status_code=400, detail=message)
     return {"message": message}
