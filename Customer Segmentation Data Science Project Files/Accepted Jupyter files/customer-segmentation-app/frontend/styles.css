@@ -841,6 +841,26 @@ body {
     font-weight: 600;
 }
 
+.delete-btn {
+    background: transparent;
+    border: 1px solid #fee2e2;
+    color: #ef4444;
+    padding: 6px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #fecaca;
+    transform: scale(1.05);
+}
+
 .page-num.active {
     background: #2563EB;
     color: white;
