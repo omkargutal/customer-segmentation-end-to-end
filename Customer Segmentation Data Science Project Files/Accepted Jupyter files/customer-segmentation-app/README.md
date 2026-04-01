@@ -15,14 +15,17 @@ customer-segmentation-app/
 │   │   └── scaler.pkl
 │   ├── data/          # Original dataset and predictions storage
 │   │   ├── customers.csv
-│   │   └── predictions.csv
+│   │   ├── predictions.csv
+│   │   └── deleted.csv
 │
 ├── frontend/
 │   ├── index.html     # UI layout
 │   ├── styles.css     # Clean modern dashboard styling
 │   └── script.js      # Form processing, charting (Chart.js), API fetching
 │
+├── Dockerfile         # Docker configuration for containerized deployment
 ├── requirements.txt   # Python environment dependencies
+├── .gitignore         # Git ignore file
 └── README.md          # Project instructions
 ```
 
@@ -35,19 +38,38 @@ customer-segmentation-app/
 
 ## 🛠️ Setup Instructions
 
-### 1. Backend Setup
+### 1. Local Development Setup
 
 Create a virtual environment and launch the FastAPI server.
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# Run the FastAPI app
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r ../requirements.txt
 
-# Run the FastAPI app
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### 2. Docker Setup
+
+Build and run the application using Docker.
+
+```bash
+# Build the Docker image
+docker build -t customer-segmentation-app .
+
+# Run the container
+docker run -p 8000:8000 customer-segmentation-app
+```
+
+The frontend will be served at `http://localhost:8000`.
 *Untill you deploy The API will be available at `http://localhost:8000`*
 
 ### 2. Frontend Setup
