@@ -3,29 +3,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabs = document.querySelectorAll(".tab");
     const sections = document.querySelectorAll(".section");
 
+    function activateSection(target) {
+        console.log("Activating section:", target);
+        tabs.forEach(t => t.classList.remove("active"));
+        sections.forEach(s => s.classList.remove("active"));
+
+        const tab = document.querySelector(`.tab[data-target="${target}"]`);
+        if (tab) tab.classList.add("active");
+
+        const section = document.getElementById(target);
+        if (section) section.classList.add("active");
+
+        // Re-render charts when Overview tab is active to prevent canvas sizing bugs
+        if (target === "overview") {
+            updateOverviewKPIs();
+        }
+
+        if (target === "data") {
+            if (!customersData || customersData.length === 0) loadData(); else renderTable();
+        }
+    }
+
     tabs.forEach(tab => {
         tab.addEventListener("click", () => {
-            const target = tab.dataset.target;
-
-            // Remove active classes
-            tabs.forEach(t => t.classList.remove("active"));
-            sections.forEach(s => s.classList.remove("active"));
-
-            // Add active to clicked tab
-            tab.classList.add("active");
-            document.getElementById(target).classList.add("active");
-
-            // Re-render charts when Overview tab is active to prevent canvas sizing bugs
-            if (target === "overview") {
-                updateOverviewKPIs();
-            }
-            if (target === "data") {
-                if (!customersData || customersData.length === 0) loadData(); else renderTable();
-            }
+            activateSection(tab.dataset.target);
         });
     });
 
-    const API_BASE_URL = "http://127.0.0.1:8000";
+    // API Configuration: For deployment, replace with your backend service URL (e.g., https://your-backend.railway.app)
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? "http://127.0.0.1:8000" 
+        : ""; // Use current origin if served from same domain, or specify your hosted backend URL here
 
     let customersData = null;
     let pendingPrediction = null;
@@ -240,12 +248,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const predictForm = document.getElementById("predictForm");
+    const predictBtn = document.getElementById("predictBtn");
     const resultPlaceholder = document.getElementById("resultPlaceholder");
     const resultContent = document.getElementById("resultContent");
     const charCard = document.getElementById("charCard");
 
-    predictForm.addEventListener("submit", async (e) => {
+    predictBtn.addEventListener("click", async (e) => {
         e.preventDefault();
+
+        if (!predictForm.checkValidity()) {
+            predictForm.reportValidity();
+            return;
+        }
 
         const payload = {
             Income: parseFloat(document.getElementById("income").value) || 0,
@@ -320,6 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Will be prepended when data loads next time via the flag
                     pendingPrediction = newRecord;
                 }
+
+                // Keep user on Predict tab after generating prediction
+                console.log("Prediction successful, activating predict section");
+                activateSection("predict");
 
             } else {
                 alert("Prediction Error: " + (data.detail || "Server Error"));
@@ -436,12 +454,53 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${spendStr}</td>
                 <td>${row.Total_Purchases || 0}</td>
                 <td>${row.Total_Dependents || 0}</td>
+                <td>
+                    <button class="delete-btn" data-id="${row.id}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                </td>
             `;
             dataTableBody.appendChild(tr);
         });
 
+        // Add event listeners to delete buttons
+        document.querySelectorAll(".delete-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = btn.getAttribute("data-id");
+                if (confirm("Are you sure you want to delete this customer?")) {
+                    await deleteCustomer(id);
+                }
+            });
+        });
+
         // Render pagination buttons
         renderPagination(totalPages);
+    }
+
+    async function deleteCustomer(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/delete/${id}`, {
+                method: "DELETE"
+            });
+            if (response.ok) {
+                // Remove from local array
+                customersData = customersData.filter(c => c.id !== id);
+                renderTable();
+                updateOverviewKPIs();
+                
+                // Update header count
+                const headerCount = document.getElementById("headerCustomerCount");
+                if (headerCount) {
+                    headerCount.innerText = customersData.length.toLocaleString();
+                }
+            } else {
+                const err = await response.json();
+                alert("Delete Failed: " + (err.detail || "Unknown error"));
+            }
+        } catch (err) {
+            console.error("Delete call failed", err);
+            alert("Delete Failed: Could not connect to server");
+        }
     }
 
     function renderPagination(totalPages) {
