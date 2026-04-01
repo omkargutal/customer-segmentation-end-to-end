@@ -4,3 +4,7 @@ pydantic
 scikit-learn
 pandas
 joblib
+pymongo
+dnspython
+mongomock
+python-dotenv
