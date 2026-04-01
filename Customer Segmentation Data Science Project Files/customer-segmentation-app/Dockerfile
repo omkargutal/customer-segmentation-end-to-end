@@ -11,6 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend files into the working directory
 COPY backend/ .
 
+# Copy frontend files into the working directory
+COPY frontend/ ./frontend/
+
 # Ensure data directory exists if it's still needed, but we migrated to DB
 # Still, model files are in model/
 RUN mkdir -p data

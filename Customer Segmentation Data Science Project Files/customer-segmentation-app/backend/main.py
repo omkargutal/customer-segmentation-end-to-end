@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List
 import utils
 import uvicorn
+import os
 
 app = FastAPI(title="Customer Segmentation Dashboard API")
 
@@ -30,9 +32,6 @@ class CustomerInput(BaseModel):
     Total_Dependents: int
     Total_Campaigns_Accepted: int
 
-@app.get("/")
-def read_root():
-    return {"message": "Customer Segmentation API is running."}
 
 @app.post("/predict")
 def predict_segment(data: CustomerInput):
@@ -78,5 +77,11 @@ def delete_customer_endpoint(customer_id: str):
         raise HTTPException(status_code=400, detail=message)
     return {"message": message}
 
+# --- CATCH-ALL FRONTEND: Serve the dashboard at the root URL ---
+# This must be at the bottom so it doesn't intercept API routes
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
