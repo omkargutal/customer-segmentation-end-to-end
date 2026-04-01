@@ -79,7 +79,7 @@ def delete_customer_endpoint(customer_id: str):
 
 # --- CATCH-ALL FRONTEND: Serve the dashboard at the root URL ---
 # This must be at the bottom so it doesn't intercept API routes
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
