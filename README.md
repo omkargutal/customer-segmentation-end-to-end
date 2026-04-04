@@ -4,7 +4,7 @@
 
 **Unsupervised Learning · K-Means Clustering · Supervised Classification · Full-Stack Deployment**
 
-[![Try the Live App](https://img.shields.io/badge/🚀_Try_the_Live_App-Click_Here-28a745?style=for-the-badge&logoColor=white)](https://customer-segmentation-app-production.up.railway.app)
+[![Try this Live App](https://img.shields.io/badge/🚀_Try_this_Live_App-Click_Here-28a745?style=for-the-badge&logoColor=white)](https://customer-segmentation-app-production.up.railway.app) &nbsp; [![Demo Video](https://img.shields.io/badge/📹_Project_Walkthrough-Watch_Now-red?style=for-the-badge&logoColor=white)](https://drive.google.com/file/d/1QBJCTpRVHZJFyGiOUyVkbNpRn3R-xggl/view?usp=share_link)
 
 A production-ready data science pipeline that discovers natural customer groups from a real-world marketing dataset, evaluates three clustering algorithms, selects the best model, and deploys a live segment predictor — all in one cohesive project.
 
@@ -410,6 +410,17 @@ Deal-Seeking Parents     0.9762    1.0000    0.9880        82
 
 ---
 
+## 📱 App Preview
+
+Explore the model in action through the live dashboard or watch the full project walkthrough.
+
+<div align="center">
+
+[![Try this Live App](https://img.shields.io/badge/🚀_Try_this_Live_App-Click_Here-28a745?style=for-the-badge&logoColor=white)](https://customer-segmentation-app-production.up.railway.app) &nbsp; [![Demo Video](https://img.shields.io/badge/📹_Project_Walkthrough-Watch_Now-red?style=for-the-badge&logoColor=white)](https://drive.google.com/file/d/1QBJCTpRVHZJFyGiOUyVkbNpRn3R-xggl/view?usp=share_link)
+
+</div>
+
+---
 
 ## 📁 Project Structure
 
